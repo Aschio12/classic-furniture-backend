@@ -2,7 +2,7 @@
   "name": "classic-furniture-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
@@ -14,15 +14,18 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Aschio12/classic-furniture-backend/issues"
   },
   "homepage": "https://github.com/Aschio12/classic-furniture-backend#readme",
   "dependencies": {
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "mongoose": "^9.0.2"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
