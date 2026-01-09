@@ -1,9 +1,18 @@
 const Product = require('../models/Product');
+const User = require('../models/User');
 
 // GET /api/products - public
 const getProducts = async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 }).populate('createdBy', 'name email role');
+    const { seller } = req.query;
+    const filter = {};
+    if (seller) {
+      filter.seller = seller;
+    }
+
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .populate('seller', 'name email role');
     return res.json(products);
   } catch (err) {
     return res.status(500).json({ message: 'Failed to fetch products', error: err.message });
@@ -13,10 +22,15 @@ const getProducts = async (req, res) => {
 // POST /api/products - admin only
 const createProduct = async (req, res) => {
   try {
-    const { name, description, category, price, stock, imageUrl } = req.body;
+    const { name, description, category, price, stock, imageUrl, sellerId } = req.body;
 
-    if (!name || !description || !category || price == null) {
-      return res.status(400).json({ message: 'name, description, category, and price are required' });
+    if (!name || !description || !category || price == null || !sellerId) {
+      return res.status(400).json({ message: 'name, description, category, price, and sellerId are required' });
+    }
+
+    const seller = await User.findById(sellerId).select('name email role');
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller not found' });
     }
 
     const product = await Product.create({
@@ -26,7 +40,7 @@ const createProduct = async (req, res) => {
       price,
       stock: stock ?? 0,
       imageUrl: imageUrl || '',
-      createdBy: req.user._id,
+      seller: seller._id,
     });
 
     return res.status(201).json(product);
@@ -41,7 +55,10 @@ const updateProduct = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const product = await Product.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    const product = await Product.findByIdAndUpdate(id, updates, { new: true, runValidators: true }).populate(
+      'seller',
+      'name email role'
+    );
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
