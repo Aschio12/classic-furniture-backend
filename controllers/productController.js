@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const User = require('../models/User');
+const supabase = require('../config/supabaseClient');
 
 // GET /api/products - public
 const getProducts = async (req, res) => {
@@ -22,15 +23,37 @@ const getProducts = async (req, res) => {
 // POST /api/products - admin only
 const createProduct = async (req, res) => {
   try {
-    const { name, description, category, price, stock, imageUrl, sellerId } = req.body;
+    const { name, description, category, price, stock, imageUrl, sellerId, seller: sellerAlt } = req.body;
+    const resolvedSellerId = sellerId || sellerAlt;
 
-    if (!name || !description || !category || price == null || !sellerId) {
+    if (!name || !description || !category || price == null || !resolvedSellerId) {
       return res.status(400).json({ message: 'name, description, category, price, and sellerId are required' });
     }
 
-    const seller = await User.findById(sellerId).select('name email role');
+    const seller = await User.findById(resolvedSellerId).select('name email role');
     if (!seller) {
       return res.status(404).json({ message: 'Seller not found' });
+    }
+
+    let finalImageUrl = imageUrl || '';
+
+    if (req.file) {
+      const fileExt = req.file.originalname.split('.').pop();
+      const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExt ? `.${fileExt}` : ''}`;
+      const filePath = `products/${resolvedSellerId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('furniture-images')
+        .upload(filePath, req.file.buffer, { contentType: req.file.mimetype });
+
+      if (uploadError) {
+        return res.status(500).json({ message: 'Failed to upload image', error: uploadError.message });
+      }
+
+      const { data: publicData } = supabase.storage.from('furniture-images').getPublicUrl(filePath);
+      if (publicData?.publicUrl) {
+        finalImageUrl = publicData.publicUrl;
+      }
     }
 
     const product = await Product.create({
@@ -39,7 +62,7 @@ const createProduct = async (req, res) => {
       category,
       price,
       stock: stock ?? 0,
-      imageUrl: imageUrl || '',
+      imageUrl: finalImageUrl,
       seller: seller._id,
     });
 
