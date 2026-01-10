@@ -1,6 +1,7 @@
 const express = require('express');
 const { getProducts, createProduct, updateProduct, deleteProduct } = require('../controllers/productController');
 const { protect, admin } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
 
@@ -8,7 +9,7 @@ const router = express.Router();
 router.get('/', getProducts);
 
 // Admin only
-router.post('/', protect, admin, createProduct);
+router.post('/', protect, admin, upload.single('image'), createProduct);
 router.put('/:id', protect, admin, updateProduct);
 router.delete('/:id', protect, admin, deleteProduct);
 
