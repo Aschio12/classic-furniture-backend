@@ -56,11 +56,13 @@ router.get('/', getProducts);
  *               image:
  *                 type: string
  *                 format: binary
- *               imageUrl:
- *                 type: string
  *     responses:
  *       201:
  *         description: Product created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
  *       400:
  *         description: Validation error
  *       401:
