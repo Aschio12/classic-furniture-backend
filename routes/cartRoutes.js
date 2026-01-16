@@ -1,6 +1,6 @@
 const express = require('express');
-const { addToCart, getCart, removeFromCart } = require('../controllers/cartController');
-const { protect } = require('../middleware/authMiddleware');
+const { addToCart, getCart, removeFromCart, updateCartItem, getAllCarts } = require('../controllers/cartController');
+const { protect, admin, userOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -17,6 +17,20 @@ const router = express.Router();
  *         description: Cart and total
  */
 router.get('/', protect, getCart);
+
+/**
+ * @swagger
+ * /api/cart/all:
+ *   get:
+ *     summary: Get all carts (admin only)
+ *     tags: [Cart]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of carts
+ */
+router.get('/all', protect, admin, getAllCarts);
 
 /**
  * @swagger
@@ -42,7 +56,37 @@ router.get('/', protect, getCart);
  *       200:
  *         description: Updated cart
  */
-router.post('/', protect, addToCart);
+router.post('/', protect, userOnly, addToCart);
+
+/**
+ * @swagger
+ * /api/cart/{productId}:
+ *   put:
+ *     summary: Update cart item quantity
+ *     tags: [Cart]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [quantity]
+ *             properties:
+ *               quantity:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Updated cart
+ */
+router.put('/:productId', protect, userOnly, updateCartItem);
 
 /**
  * @swagger
@@ -62,6 +106,6 @@ router.post('/', protect, addToCart);
  *       200:
  *         description: Updated cart
  */
-router.delete('/:productId', protect, removeFromCart);
+router.delete('/:productId', protect, userOnly, removeFromCart);
 
 module.exports = router;
