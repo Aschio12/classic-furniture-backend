@@ -27,8 +27,22 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'admin', 'seller'],
       default: 'user',
+    },
+    sellerStatus: {
+      type: String,
+      enum: ['none', 'pending', 'approved', 'rejected'],
+      default: 'none',
+    },
+    businessLicense: {
+      type: String,
+      default: '',
+    },
+    paymentDetails: {
+      telebirrNumber: { type: String, default: '' },
+      bankAccountName: { type: String, default: '' },
+      accountNumber: { type: String, default: '' },
     },
   },
   { timestamps: true }
