@@ -1,6 +1,8 @@
 const Cart = require('../models/Cart');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
+const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // POST /api/orders/checkout
 const checkout = async (req, res) => {
@@ -119,4 +121,61 @@ const markAsArrivedAtHub = async (req, res) => {
   }
 };
 
-module.exports = { checkout, completeHubDelivery, markAsArrivedAtHub };
+// PATCH /api/orders/confirm
+const confirmFinalDelivery = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { orderId, verificationCode } = req.body;
+    if (!orderId || !verificationCode) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'orderId and verificationCode are required' });
+    }
+
+    const order = await Order.findById(orderId).session(session);
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.status !== 'Arrived at Hub') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Order is not ready for final confirmation' });
+    }
+
+    if (order.verificationCode !== String(verificationCode)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    order.status = 'Completed';
+    order.history.push({ status: 'Completed', handledBy: req.user._id, note: 'Final delivery confirmed' });
+
+    await order.save({ session });
+
+    await User.findByIdAndUpdate(
+      order.seller,
+      { $inc: { balance: order.totalAmount } },
+      { session, new: true }
+    );
+
+    // TODO: Send notification to Seller: Money received
+    // TODO: Send notification to Buyer: Transaction closed
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.json({ message: 'Final delivery confirmed', order });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ message: 'Failed to confirm final delivery', error: err.message });
+  }
+};
+
+module.exports = { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery };
