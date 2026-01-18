@@ -20,6 +20,7 @@ const initializePayment = async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: 'Buyer email not found' });
     }
+    const first_name = order.buyer?.name || 'Buyer';
 
     const tx_ref = `order_${orderId}_${Date.now()}`;
 
@@ -27,14 +28,15 @@ const initializePayment = async (req, res) => {
       amount: order.totalAmount,
       currency: 'ETB',
       email,
+      first_name,
       tx_ref,
-      callback_url: 'https://example.com/chapa/callback',
-      return_url: 'https://example.com/checkout/success',
+      callback_url: 'https://webhook.site/your-unique-id',
+      return_url: 'http://localhost:5000/api-docs',
     };
 
     const response = await axios.post('https://api.chapa.co/v1/transaction/initialize', payload, {
       headers: {
-        Authorization: `Bearer ${process.env.CHAPA_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.CHAPA_TEST_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
     });
