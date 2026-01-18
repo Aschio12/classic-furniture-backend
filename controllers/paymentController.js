@@ -2,6 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
+const Product = require('../models/Product');
 
 // POST /api/payments/initialize
 const initializePayment = async (req, res) => {
@@ -59,7 +60,7 @@ const initializePayment = async (req, res) => {
 };
 
 // POST /api/payments/webhook
-const chapaWebhook = async (req, res) => {
+const verifyChapaWebhook = async (req, res) => {
   try {
     const signature = req.headers['x-chapa-signature'];
     if (!signature) {
@@ -101,9 +102,18 @@ const chapaWebhook = async (req, res) => {
 
     order.status = 'Paid';
     order.history.push({ status: 'Paid', handledBy: null, note: 'Payment confirmed via webhook' });
-    await order.save();
 
     transaction.status = 'Success';
+
+    const bulk = order.items.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: { $inc: { stock: -item.quantity } },
+      },
+    }));
+
+    await Product.bulkWrite(bulk);
+    await order.save();
     await transaction.save();
 
     return res.json({ received: true });
@@ -112,4 +122,4 @@ const chapaWebhook = async (req, res) => {
   }
 };
 
-module.exports = { initializePayment, chapaWebhook };
+module.exports = { initializePayment, verifyChapaWebhook };
