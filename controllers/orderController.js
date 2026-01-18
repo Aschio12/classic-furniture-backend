@@ -88,4 +88,35 @@ const completeHubDelivery = async (req, res) => {
   }
 };
 
-module.exports = { checkout, completeHubDelivery };
+// PATCH /api/orders/hub/arrived/:id
+const markAsArrivedAtHub = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const managerHub = req.user.hubLocation || req.user.hubAssignment;
+    if (!managerHub || order.pickupHub !== managerHub) {
+      return res.status(403).json({ message: 'Order does not belong to your hub' });
+    }
+
+    if (order.status !== 'Shipped') {
+      return res.status(400).json({ message: 'Order is not in Shipped status' });
+    }
+
+    order.status = 'Arrived at Hub';
+    order.history.push({ status: 'Arrived at Hub', handledBy: req.user._id, note: 'Arrived at hub' });
+
+    // TODO: Send notification to Buyer: Your order is ready for pickup!
+
+    await order.save();
+    return res.json({ message: 'Order marked as arrived at hub', order });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to mark as arrived', error: err.message });
+  }
+};
+
+module.exports = { checkout, completeHubDelivery, markAsArrivedAtHub };
