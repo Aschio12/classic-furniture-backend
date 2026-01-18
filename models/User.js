@@ -27,8 +27,13 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin', 'seller'],
+      enum: ['user', 'admin', 'seller', 'hub_manager'],
       default: 'user',
+    },
+    hubAssignment: {
+      type: String,
+      enum: ['Addis Ababa', 'Adama', 'Hawassa', 'Bahir Dar', 'Dire Dawa', ''],
+      default: '',
     },
     sellerStatus: {
       type: String,
