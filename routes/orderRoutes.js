@@ -1,5 +1,5 @@
 const express = require('express');
-const { checkout, completeHubDelivery, markAsArrivedAtHub } = require('../controllers/orderController');
+const { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery } = require('../controllers/orderController');
 const { protect, userOnly, hubManagerOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -91,5 +91,35 @@ router.patch('/hub/complete', protect, hubManagerOnly, completeHubDelivery);
  *         description: Order not found
  */
 router.patch('/hub/arrived/:id', protect, hubManagerOnly, markAsArrivedAtHub);
+
+/**
+ * @swagger
+ * /api/orders/confirm:
+ *   patch:
+ *     summary: Confirm final delivery (buyer)
+ *     tags: [Orders]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [orderId, verificationCode]
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *               verificationCode:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Final delivery confirmed
+ *       400:
+ *         description: Invalid verification code or status
+ *       404:
+ *         description: Order not found
+ */
+router.patch('/confirm', protect, userOnly, confirmFinalDelivery);
 
 module.exports = router;
