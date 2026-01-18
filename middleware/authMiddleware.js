@@ -57,4 +57,15 @@ const userOnly = (req, res, next) => {
   return next();
 };
 
-module.exports = { protect, admin, userOnly };
+// Hub Manager: Requires req.user.role === 'hub_manager'
+const hubManagerOnly = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authorized' });
+  }
+  if (req.user.role !== 'hub_manager') {
+    return res.status(403).json({ message: 'Hub manager access required' });
+  }
+  return next();
+};
+
+module.exports = { protect, admin, userOnly, hubManagerOnly };
