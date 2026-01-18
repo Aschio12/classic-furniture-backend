@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema(
       bankAccountName: { type: String, default: '' },
       accountNumber: { type: String, default: '' },
     },
+    balance: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );
