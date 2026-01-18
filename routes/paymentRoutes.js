@@ -1,5 +1,5 @@
 const express = require('express');
-const { initializePayment, chapaWebhook } = require('../controllers/paymentController');
+const { initializePayment, verifyChapaWebhook } = require('../controllers/paymentController');
 const { protect, userOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -25,6 +25,15 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Checkout URL returned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 checkout_url:
+ *                   type: string
+ *                 tx_ref:
+ *                   type: string
  */
 router.post('/initialize', protect, userOnly, initializePayment);
 
@@ -44,6 +53,6 @@ router.post('/initialize', protect, userOnly, initializePayment);
  *       200:
  *         description: Webhook received
  */
-router.post('/webhook', chapaWebhook);
+router.post('/webhook', verifyChapaWebhook);
 
 module.exports = router;
