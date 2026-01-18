@@ -9,26 +9,38 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const shippingAddressSchema = new mongoose.Schema(
+const historySchema = new mongoose.Schema(
   {
-    street: { type: String, required: true },
-    city: { type: String, required: true },
-    phone: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ['Pending', 'Paid', 'Shipped', 'Arrived at Hub', 'Completed', 'Cancelled'],
+      required: true,
+    },
+    at: { type: Date, default: Date.now },
+    handledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    note: { type: String, default: '' },
   },
   { _id: false }
 );
 
 const orderSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    buyer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     items: { type: [orderItemSchema], default: [] },
     totalAmount: { type: Number, required: true, min: 0 },
+    pickupHub: {
+      type: String,
+      enum: ['Addis Ababa', 'Adama', 'Hawassa', 'Bahir Dar', 'Dire Dawa'],
+      required: true,
+    },
     status: {
       type: String,
-      enum: ['Pending', 'Paid', 'Shipped', 'Completed', 'Cancelled'],
+      enum: ['Pending', 'Paid', 'Shipped', 'Arrived at Hub', 'Completed', 'Cancelled'],
       default: 'Pending',
     },
-    shippingAddress: { type: shippingAddressSchema, required: true },
+    verificationCode: { type: String, default: '' },
+    history: { type: [historySchema], default: [] },
   },
   { timestamps: true }
 );
