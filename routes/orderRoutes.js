@@ -1,5 +1,5 @@
 const express = require('express');
-const { checkout, completeHubDelivery } = require('../controllers/orderController');
+const { checkout, completeHubDelivery, markAsArrivedAtHub } = require('../controllers/orderController');
 const { protect, userOnly, hubManagerOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -65,5 +65,31 @@ router.post('/checkout', protect, userOnly, checkout);
  *         description: Order not found
  */
 router.patch('/hub/complete', protect, hubManagerOnly, completeHubDelivery);
+
+/**
+ * @swagger
+ * /api/orders/hub/arrived/{id}:
+ *   patch:
+ *     summary: Mark order as arrived at hub (hub manager)
+ *     tags: [Orders]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order marked as arrived
+ *       400:
+ *         description: Order not in Shipped status
+ *       403:
+ *         description: Order not in manager hub
+ *       404:
+ *         description: Order not found
+ */
+router.patch('/hub/arrived/:id', protect, hubManagerOnly, markAsArrivedAtHub);
 
 module.exports = router;
