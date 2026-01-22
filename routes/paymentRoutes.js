@@ -1,5 +1,5 @@
 const express = require('express');
-const { initializePayment, verifyChapaWebhook } = require('../controllers/paymentController');
+const { initializePayment, verifyWebhook } = require('../controllers/paymentController');
 const { protect, userOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -53,6 +53,6 @@ router.post('/initialize', protect, userOnly, initializePayment);
  *       200:
  *         description: Webhook received
  */
-router.post('/webhook', verifyChapaWebhook);
+router.post('/webhook', verifyWebhook);
 
 module.exports = router;
