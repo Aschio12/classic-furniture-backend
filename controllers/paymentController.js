@@ -60,18 +60,18 @@ const initializePayment = async (req, res) => {
 };
 
 // POST /api/payments/webhook
-const verifyChapaWebhook = async (req, res) => {
+const verifyWebhook = async (req, res) => {
   try {
     const signature = req.headers['x-chapa-signature'];
     if (!signature) {
       return res.status(401).json({ message: 'Missing signature' });
     }
-    if (!process.env.CHAPA_WEBHOOK_SECRET) {
+    if (!process.env.CHAPA_SECRET_KEY) {
       return res.status(500).json({ message: 'Webhook secret not configured' });
     }
 
     const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
-    const computed = crypto.createHmac('sha256', process.env.CHAPA_WEBHOOK_SECRET).update(rawBody).digest('hex');
+    const computed = crypto.createHmac('sha256', process.env.CHAPA_SECRET_KEY).update(rawBody).digest('hex');
 
     const signatureBuf = Buffer.from(signature);
     const computedBuf = Buffer.from(computed);
@@ -79,10 +79,10 @@ const verifyChapaWebhook = async (req, res) => {
       return res.status(401).json({ message: 'Invalid signature' });
     }
 
-    const event = req.body?.event || req.body?.status || req.body?.data?.status;
+    const status = req.body?.status || req.body?.data?.status || req.body?.event;
     const tx_ref = req.body?.data?.tx_ref || req.body?.tx_ref;
 
-    if (event !== 'success') {
+    if (status !== 'success') {
       return res.json({ received: true });
     }
 
@@ -90,12 +90,12 @@ const verifyChapaWebhook = async (req, res) => {
       return res.status(400).json({ message: 'tx_ref missing in webhook payload' });
     }
 
-    const transaction = await Transaction.findOne({ transactionReference: tx_ref });
-    if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
+    let orderId = null;
+    const match = String(tx_ref).match(/^order_([^_]+)_/);
+    if (match && match[1]) {
+      orderId = match[1];
     }
-
-    const order = await Order.findById(transaction.orderId);
+    const order = orderId ? await Order.findById(orderId) : null;
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
@@ -103,7 +103,12 @@ const verifyChapaWebhook = async (req, res) => {
     order.status = 'Paid';
     order.history.push({ status: 'Paid', handledBy: null, note: 'Payment confirmed via webhook' });
 
-    transaction.status = 'Success';
+    const transaction = await Transaction.create({
+      orderId: order._id,
+      paymentMethod: 'Telebirr',
+      transactionReference: tx_ref,
+      status: 'Success',
+    });
 
     const bulk = order.items.map((item) => ({
       updateOne: {
@@ -122,4 +127,4 @@ const verifyChapaWebhook = async (req, res) => {
   }
 };
 
-module.exports = { initializePayment, verifyChapaWebhook };
+module.exports = { initializePayment, verifyWebhook };
