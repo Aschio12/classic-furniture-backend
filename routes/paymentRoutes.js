@@ -8,7 +8,7 @@ const router = express.Router();
  * @swagger
  * /api/payments/initialize:
  *   post:
- *     summary: Initialize Chapa payment
+ *     summary: Start a furniture purchase transaction
  *     tags: [Payments]
  *     security:
  *       - BearerAuth: []
@@ -41,14 +41,30 @@ router.post('/initialize', protect, userOnly, initializePayment);
  * @swagger
  * /api/payments/webhook:
  *   post:
- *     summary: Chapa webhook callback
+ *     summary: Chapa Payment Confirmation (Server-to-Server)
+ *     description: This is the endpoint Chapa calls. To test locally, you can send a mock payload here.
  *     tags: [Payments]
+ *     parameters:
+ *       - in: header
+ *         name: x-chapa-signature
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *           example:
+ *             status: success
+ *             tx_ref: order_65f1b2c3d4e5f6a7b8c9d0e1_1700000000000
+ *             amount: 1200
+ *             currency: ETB
+ *             data:
+ *               status: success
+ *               tx_ref: order_65f1b2c3d4e5f6a7b8c9d0e1_1700000000000
+ *               amount: 1200
  *     responses:
  *       200:
  *         description: Webhook received
