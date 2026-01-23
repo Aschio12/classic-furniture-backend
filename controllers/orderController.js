@@ -200,7 +200,16 @@ const confirmFinalDelivery = async (req, res) => {
       { session, new: true }
     );
 
-    // TODO: Send notification to Seller: Money received
+    await createNotification({
+      recipient: order.seller,
+      sender: 'System',
+      type: 'Payout',
+      message: `Last Check: Your items were successfully picked up and your payout of ${sellerShare.toFixed(
+        2
+      )} has been initiated to your bank account.`,
+      orderId: order._id,
+    });
+
     // TODO: Send notification to Buyer: Transaction closed
 
     await session.commitTransaction();
