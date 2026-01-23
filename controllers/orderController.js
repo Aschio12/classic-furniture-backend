@@ -3,6 +3,7 @@ const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { payoutToSeller } = require('../services/paymentService');
 
 // POST /api/orders/checkout
 const checkout = async (req, res) => {
@@ -153,6 +154,19 @@ const confirmFinalDelivery = async (req, res) => {
       return res.status(400).json({ message: 'Invalid verification code' });
     }
 
+    const sellerShare = Number(order.totalAmount) * 0.9;
+    const payoutSuccess = await payoutToSeller({ sellerId: order.seller, amount: sellerShare });
+
+    if (!payoutSuccess) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(502).json({ message: 'Payout failed, order not completed' });
+    }
+
+    const sellerDoc = await User.findById(order.seller).select('name');
+    const sellerName = sellerDoc?.name || 'Seller';
+    console.log(`Sandbox Transfer Simulated: ${sellerShare.toFixed(2)} sent to ${sellerName}`);
+
     order.status = 'Completed';
     order.history.push({ status: 'Completed', handledBy: req.user._id, note: 'Final delivery confirmed' });
 
@@ -160,7 +174,7 @@ const confirmFinalDelivery = async (req, res) => {
 
     await User.findByIdAndUpdate(
       order.seller,
-      { $inc: { balance: order.totalAmount } },
+      { $inc: { balance: sellerShare } },
       { session, new: true }
     );
 
