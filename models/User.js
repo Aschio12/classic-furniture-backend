@@ -48,6 +48,7 @@ const userSchema = new mongoose.Schema(
       telebirrNumber: { type: String, default: '' },
       bankAccountName: { type: String, default: '' },
       accountNumber: { type: String, default: '' },
+      bankCode: { type: String, default: '' },
     },
     balance: { type: Number, default: 0, min: 0 },
   },
