@@ -7,6 +7,7 @@ const userRoutes = require('./routes/userRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const adminRoutes = require('./routes/adminRoutes');
@@ -19,6 +20,7 @@ app.use(
   express.json({
     verify: (req, res, buf) => {
       req.rawBody = buf;
+app.use('/api/notifications', notificationRoutes);
     },
   })
 );
