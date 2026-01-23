@@ -4,6 +4,7 @@ const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const { payoutToSeller } = require('../services/paymentService');
+const { createNotification } = require('../utils/notificationHelper');
 
 // POST /api/orders/checkout
 const checkout = async (req, res) => {
@@ -155,9 +156,30 @@ const confirmFinalDelivery = async (req, res) => {
     }
 
     const sellerShare = Number(order.totalAmount) * 0.9;
-    const payoutSuccess = await payoutToSeller({ sellerId: order.seller, amount: sellerShare });
+    let payoutSuccess = false;
+
+    try {
+      payoutSuccess = await payoutToSeller({ sellerId: order.seller, amount: sellerShare });
+    } catch (_) {
+      payoutSuccess = false;
+    }
 
     if (!payoutSuccess) {
+      order.status = 'Payout Failed';
+      order.history.push({ status: 'Payout Failed', handledBy: req.user._id, note: 'Payout failed' });
+      await order.save({ session });
+
+      const adminUser = await User.findOne({ role: 'admin' }).select('_id');
+      if (adminUser) {
+        await createNotification({
+          recipient: adminUser._id,
+          sender: 'System',
+          type: 'Payout',
+          message: `Payout failed for Order ${order._id}. Check Seller bank details.`,
+          orderId: order._id,
+        });
+      }
+
       await session.abortTransaction();
       session.endSession();
       return res.status(502).json({ message: 'Payout failed, order not completed' });
@@ -192,4 +214,63 @@ const confirmFinalDelivery = async (req, res) => {
   }
 };
 
-module.exports = { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery };
+// POST /api/orders/:id/retry-payout (admin only)
+const retryPayout = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const order = await Order.findById(id).session(session);
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.status !== 'Payout Failed') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Order is not in Payout Failed status' });
+    }
+
+    const sellerShare = Number(order.totalAmount) * 0.9;
+    let payoutSuccess = false;
+    try {
+      payoutSuccess = await payoutToSeller({ sellerId: order.seller, amount: sellerShare });
+    } catch (_) {
+      payoutSuccess = false;
+    }
+
+    if (!payoutSuccess) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(502).json({ message: 'Payout retry failed' });
+    }
+
+    const sellerDoc = await User.findById(order.seller).select('name');
+    const sellerName = sellerDoc?.name || 'Seller';
+    console.log(`Sandbox Transfer Simulated: ${sellerShare.toFixed(2)} sent to ${sellerName}`);
+
+    order.status = 'Completed';
+    order.history.push({ status: 'Completed', handledBy: req.user._id, note: 'Payout retry successful' });
+    await order.save({ session });
+
+    await User.findByIdAndUpdate(
+      order.seller,
+      { $inc: { balance: sellerShare } },
+      { session, new: true }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.json({ message: 'Payout retry successful', order });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ message: 'Payout retry failed', error: err.message });
+  }
+};
+
+module.exports = { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery, retryPayout };
