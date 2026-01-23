@@ -11,6 +11,8 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const adminRoutes = require('./routes/adminRoutes');
+const { startOrderCleanupJob } = require('./jobs/orderCleanup');
+const { startEscrowAlertJob } = require('./jobs/escrowAlerts');
 
 const app = express();
 
@@ -40,8 +42,8 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-const { startOrderCleanupJob } = require('./jobs/orderCleanup');
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   startOrderCleanupJob();
+  startEscrowAlertJob();
 });
