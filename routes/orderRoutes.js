@@ -1,6 +1,6 @@
 const express = require('express');
-const { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery } = require('../controllers/orderController');
-const { protect, userOnly, hubManagerOnly } = require('../middleware/authMiddleware');
+const { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery, retryPayout } = require('../controllers/orderController');
+const { protect, userOnly, hubManagerOnly, admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -121,5 +121,29 @@ router.patch('/hub/arrived/:id', protect, hubManagerOnly, markAsArrivedAtHub);
  *         description: Order not found
  */
 router.patch('/confirm', protect, userOnly, confirmFinalDelivery);
+
+/**
+ * @swagger
+ * /api/orders/{id}/retry-payout:
+ *   post:
+ *     summary: Retry payout for failed orders (admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Payout retry successful
+ *       400:
+ *         description: Order not in Payout Failed status
+ *       404:
+ *         description: Order not found
+ */
+router.post('/:id/retry-payout', protect, admin, retryPayout);
 
 module.exports = router;
