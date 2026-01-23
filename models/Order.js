@@ -13,7 +13,7 @@ const historySchema = new mongoose.Schema(
   {
     status: {
       type: String,
-      enum: ['Pending', 'Paid', 'Shipped', 'Arrived at Hub', 'Completed', 'Cancelled'],
+      enum: ['Pending', 'Paid', 'Shipped', 'Arrived at Hub', 'Completed', 'Cancelled', 'Payout Failed'],
       required: true,
     },
     at: { type: Date, default: Date.now },
@@ -36,7 +36,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Pending', 'Paid', 'Shipped', 'Arrived at Hub', 'Completed', 'Cancelled'],
+      enum: ['Pending', 'Paid', 'Shipped', 'Arrived at Hub', 'Completed', 'Cancelled', 'Payout Failed'],
       default: 'Pending',
     },
     verificationCode: { type: String, default: '' },
