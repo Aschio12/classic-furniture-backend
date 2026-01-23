@@ -20,7 +20,6 @@ app.use(
   express.json({
     verify: (req, res, buf) => {
       req.rawBody = buf;
-app.use('/api/notifications', notificationRoutes);
     },
   })
 );
@@ -33,6 +32,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/', (req, res) => {
@@ -40,4 +40,8 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const { startOrderCleanupJob } = require('./jobs/orderCleanup');
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  startOrderCleanupJob();
+});
