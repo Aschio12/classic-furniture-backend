@@ -20,7 +20,7 @@ const payoutToSeller = async ({ sellerId, amount }) => {
     throw new Error('CHAPA_TEST_SECRET_KEY is not set');
   }
 
-  const payoutAmount = Number(amount) * 0.9;
+  const payoutAmount = Number(amount);
   if (!Number.isFinite(payoutAmount) || payoutAmount <= 0) {
     throw new Error('Invalid payout amount');
   }
