@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -17,6 +18,15 @@ const { startEscrowAlertJob } = require('./jobs/escrowAlerts');
 const app = express();
 
 connectDB();
+
+app.use(cors({
+  origin: ["http://localhost:3000", "https://your-production-url.vercel.app"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.use(
   express.json({

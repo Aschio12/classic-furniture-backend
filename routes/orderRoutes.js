@@ -1,5 +1,14 @@
 const express = require('express');
-const { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery, retryPayout } = require('../controllers/orderController');
+const { 
+  checkout, 
+  completeHubDelivery, 
+  markAsArrivedAtHub, 
+  confirmFinalDelivery, 
+  retryPayout, 
+  getOrderById,
+  getMyOrders,
+  getHubOrders
+} = require('../controllers/orderController');
 const { protect, userOnly, hubManagerOnly, admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -36,6 +45,56 @@ router.post('/checkout', protect, userOnly, checkout);
 
 /**
  * @swagger
+ * /api/orders/my:
+ *   get:
+ *     summary: Get logged-in user's orders (buyer or seller)
+ *     tags: [Orders]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of orders
+ */
+router.get('/my', protect, getMyOrders);
+
+/**
+ * @swagger
+ * /api/orders/hub/pending:
+ *   get:
+ *     summary: Get pending deliveries for assigned hub (manager only)
+ *     tags: [Orders]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of hub orders
+ */
+router.get('/hub/pending', protect, hubManagerOnly, getHubOrders);
+
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   get:
+ *     summary: Get order details
+ *     tags: [Orders]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order details
+ *       404:
+ *         description: Order not found
+ */
+router.get('/:id', protect, getOrderById);
+
+/**
+ * @swagger
  * /api/orders/hub/complete:
  *   patch:
  *     summary: Confirm delivery at hub (hub manager)
@@ -64,7 +123,7 @@ router.post('/checkout', protect, userOnly, checkout);
  *       404:
  *         description: Order not found
  */
-router.patch('/hub/complete', protect, hubManagerOnly, completeHubDelivery);
+router.patch('/hub/complete', protect, hubManagerOnly, confirmFinalDelivery);
 
 /**
  * @swagger

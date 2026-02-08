@@ -282,4 +282,85 @@ const retryPayout = async (req, res) => {
   }
 };
 
-module.exports = { checkout, completeHubDelivery, markAsArrivedAtHub, confirmFinalDelivery, retryPayout };
+// GET /api/orders/:id
+const getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('buyer', 'name email')
+      .populate('items.product', 'name price images')
+      .populate('seller', 'name');
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Access control: Buyer, Seller, or Admin
+    const isBuyer = req.user._id.toString() === order.buyer._id.toString();
+    const isSeller = req.user._id.toString() === order.seller._id.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isBuyer && !isSeller && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
+
+// GET /api/orders/my
+const getMyOrders = async (req, res) => {
+  try {
+    const role = req.user.role;
+    let query = {};
+
+    if (role === 'seller') {
+      query = { seller: req.user._id };
+    } else {
+      query = { buyer: req.user._id };
+    }
+
+    const orders = await Order.find(query)
+      .populate('items.product', 'name price images')
+      .populate('seller', 'name')
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch orders', error: err.message });
+  }
+};
+
+// GET /api/orders/hub/pending
+const getHubOrders = async (req, res) => {
+  try {
+    const hub = req.user.hubAssignment;
+    if (!hub) {
+      return res.status(400).json({ message: 'User is not assigned to any hub' });
+    }
+
+    // Orders that are Shipped (coming to hub) or Arrived (at hub, waiting for pickup)
+    const orders = await Order.find({
+      pickupHub: hub,
+      status: { $in: ['Shipped', 'Arrived at Hub'] },
+    })
+      .populate('buyer', 'name email phone')
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch hub orders', error: err.message });
+  }
+};
+
+module.exports = { 
+  checkout, 
+  completeHubDelivery, 
+  markAsArrivedAtHub, 
+  confirmFinalDelivery, 
+  retryPayout, 
+  getOrderById,
+  getMyOrders,
+  getHubOrders
+};

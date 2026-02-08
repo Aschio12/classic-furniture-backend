@@ -1,5 +1,5 @@
 const express = require('express');
-const { initializePayment, verifyWebhook } = require('../controllers/paymentController');
+const { initializePayment, verifyWebhook, verifyPayment } = require('../controllers/paymentController');
 const { protect, userOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -36,6 +36,24 @@ const router = express.Router();
  *                   type: string
  */
 router.post('/initialize', protect, userOnly, initializePayment);
+
+/**
+ * @swagger
+ * /api/payments/verify/{tx_ref}:
+ *   get:
+ *     summary: Verify a payment by transaction reference
+ *     tags: [Payments]
+ *     parameters:
+ *       - in: path
+ *         name: tx_ref
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Payment verified
+ */
+router.get('/verify/:tx_ref', verifyPayment);
 
 /**
  * @swagger

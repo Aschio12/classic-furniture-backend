@@ -127,4 +127,87 @@ const verifyWebhook = async (req, res) => {
   }
 };
 
-module.exports = { initializePayment, verifyWebhook };
+// GET /api/payments/verify/:tx_ref
+const verifyPayment = async (req, res) => {
+  try {
+    const { tx_ref } = req.params;
+    if (!tx_ref) {
+      return res.status(400).json({ message: 'Transaction reference is required' });
+    }
+
+    // Check if order is already paid locally
+    const transaction = await Transaction.findOne({ transactionReference: tx_ref });
+    if (transaction && transaction.status === 'Success') {
+      const order = await Order.findById(transaction.orderId);
+      return res.json({ 
+        status: 'success', 
+        message: 'Payment already verified', 
+        data: { tx_ref, orderId: order._id } 
+      });
+    }
+
+    // Validating against Chapa
+    const response = await axios.get(`https://api.chapa.co/v1/transaction/verify/${tx_ref}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.CHAPA_SECRET_KEY}`,
+      },
+    });
+
+    if (response.data.status !== 'success') {
+      return res.status(400).json({ message: 'Payment verification failed at Chapa' });
+    }
+
+    // Extract Order ID
+    let orderId = null;
+    const match = String(tx_ref).match(/^order_([^_]+)_/);
+    if (match && match[1]) {
+      orderId = match[1];
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // If order is not yet paid, process it (similar to webhook)
+    if (order.status !== 'Paid') {
+        order.status = 'Paid';
+        order.history.push({ 
+            status: 'Paid', 
+            handledBy: req.user ? req.user._id : null, 
+            note: 'Payment verified by client request' 
+        });
+
+        const newTransaction = await Transaction.create({
+            orderId: order._id,
+            paymentMethod: 'Telebirr', // Or derive from Chapa response
+            transactionReference: tx_ref,
+            status: 'Success',
+        });
+
+        // Decrement Stock
+        const bulk = order.items.map((item) => ({
+            updateOne: {
+                filter: { _id: item.product },
+                update: { $inc: { stock: -item.quantity } },
+            },
+        }));
+
+        await Product.bulkWrite(bulk);
+        await order.save();
+        await newTransaction.save();
+    }
+
+    return res.json({ 
+        status: 'success', 
+        message: 'Payment verified successfully', 
+        data: { tx_ref, orderId: order._id } 
+    });
+
+  } catch (err) {
+    console.error('Verify Payment Error:', err.message);
+    return res.status(500).json({ message: 'Verification failed', error: err.message });
+  }
+};
+
+module.exports = { initializePayment, verifyWebhook, verifyPayment };
