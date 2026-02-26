@@ -19,12 +19,27 @@ const app = express();
 
 connectDB();
 
-app.use(cors({
-  origin: ["http://localhost:3000", "https://your-production-url.vercel.app"],
+// Configure CORS with a small allowlist and support for preflight requests.
+const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGINS || "http://localhost:3000, http://localhost:3001, https://your-production-url.vercel.app").split(',').map(s => s.trim());
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin like mobile apps or curl
+    if (!origin) return callback(null, true);
+    if (FRONTEND_ORIGINS.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+// Ensure OPTIONS preflight requests are handled for all routes
+app.options('*', cors(corsOptions));
 
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
