@@ -1,0 +1,15 @@
+'''PORT=5001
+MONGO_URI=mongodb+srv://aschalew:zz9HZsr7U1ANAMqR@cluster0.z7h7zlr.mongodb.net/furniture_db?appName=Cluster0
+# MONGO_URI=mongodb+srv://asch:1919asch@cluster0.z7h7zlr.mongodb.net/?appName=Cluster0
+#mongodb+srv://aschalewdere2_db_user:zf9M5L5brHX1KlEq@cluster0.z7h7zlr.mongodb.net/?appName=Cluster0
+ADMIN_NAME=bobo
+ADMIN_EMAIL=admin@furniture1.com
+ADMIN_PASSWORD=1968wow
+
+JWT_SECRET=secreetovallooiooserasf
+SUPABASE_URL=https://qjadmavgzuzrpyjmrjec.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYWRtYXZnenV6cnB5am1yamVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NjE2ODIsImV4cCI6MjA1OTIzNzY4Mn0.2xljHdHALzz5KWbf_g5z4Ut4BgrevvMsFwJbyvppn-o
+CHAPA_SECRET_KEY=CHAPUBK_TEST-IVlfmplPMHUxvrjBcjNz24ZlewLjWjnK
+CHAPA_WEBHOOK_SECRET=CHASECK_TEST-6wj4q3xrsWKea3SvdKTfScngaX5GO5FO
+CHAPA_TEST_SECRET_KEY=CHASECK_TEST-6wj4q3xrsWKea3SvdKTfScngaX5GO5FO
+CHAPA_CALLBACK_URL=https://maida-electromechanical-melisa.ngrok-free.dev'''
