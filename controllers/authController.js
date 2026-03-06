@@ -20,6 +20,23 @@ const registerUser = async (req, res) => {
     }
 
     const normalizedEmail = String(email).toLowerCase();
+
+    // Security check: Prevent registration with restricted keywords or official admin email
+    const restrictedTerms = ['admin', 'hub', 'manager', 'hub_manager', 'system', 'root'];
+    const hasRestrictedTerm = restrictedTerms.some(term => normalizedEmail.includes(term));
+    const isEnvAdmin = process.env.ADMIN_EMAIL && normalizedEmail === process.env.ADMIN_EMAIL.toLowerCase();
+
+    if (hasRestrictedTerm || isEnvAdmin) {
+      return res.status(403).json({ 
+        message: 'Security error: Email contains restricted keywords or matches system credentials. Registration denied.' 
+      });
+    }
+
+    // Explicitly reject if user tries to spoof a role in the payload
+    if (req.body.role && req.body.role !== 'user') {
+      return res.status(403).json({ message: 'Security error: Role assignment is forbidden during customer registration.' });
+    }
+
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
       return res.status(409).json({ message: 'User already exists' });
