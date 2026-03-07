@@ -28,7 +28,7 @@ const registerUser = async (req, res) => {
 
     if (hasRestrictedTerm || isEnvAdmin) {
       return res.status(403).json({ 
-        message: 'Security error: Email contains restricted keywords or matches system credentials. Registration denied.' 
+        message: 'Security error: Email contains restricted keywords or matches system credentials. Registration denied.'
       });
     }
 
@@ -42,10 +42,14 @@ const registerUser = async (req, res) => {
       return res.status(409).json({ message: 'User already exists' });
     }
 
+    // Hash the password before creating the user
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const user = await User.create({
       name,
       email: normalizedEmail,
-      password,
+      password: hashedPassword,
       role: 'user',
     });
 
@@ -77,13 +81,13 @@ const loginUser = async (req, res) => {
     }
 
     const token = generateToken(user._id.toString());
-    return res.json({ token, role: user.role });
+    const { password: _, ...safe } = user.toObject();
+    return res.json({ token, user: safe, role: user.role });
   } catch (err) {
     return res.status(500).json({ message: 'Login failed', error: err.message });
   }
 };
 
-module.exports = { registerUser, loginUser };
 // GET /api/auth/logout
 // Stateless JWT logout: respond success; if cookies are used, clear 'token'
 const logout = async (req, res) => {
