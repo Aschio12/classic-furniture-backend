@@ -25,14 +25,17 @@ const initializePayment = async (req, res) => {
 
     const tx_ref = `order_${orderId}_${Date.now()}`;
 
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3003';
+    const backendUrl = process.env.BACKEND_URL || 'https://classic-furniture-backend.onrender.com';
+
     const payload = {
       amount: order.totalAmount,
       currency: 'ETB',
       email,
       first_name,
       tx_ref,
-      callback_url: 'https://webhook.site/your-unique-id',
-      return_url: 'http://localhost:5000/api-docs',
+      callback_url: `${backendUrl}/api/payments/webhook`,
+      return_url: `${frontendUrl}/payment-success?tx_ref=${tx_ref}`,
     };
 
     const response = await axios.post('https://api.chapa.co/v1/transaction/initialize', payload, {
@@ -66,12 +69,13 @@ const verifyWebhook = async (req, res) => {
     if (!signature) {
       return res.status(401).json({ message: 'Missing signature' });
     }
-    if (!process.env.CHAPA_SECRET_KEY) {
+    const webhookSecret = process.env.CHAPA_WEBHOOK_SECRET || process.env.CHAPA_SECRET_KEY;
+    if (!webhookSecret) {
       return res.status(500).json({ message: 'Webhook secret not configured' });
     }
 
     const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
-    const computed = crypto.createHmac('sha256', process.env.CHAPA_SECRET_KEY).update(rawBody).digest('hex');
+    const computed = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
 
     const signatureBuf = Buffer.from(signature);
     const computedBuf = Buffer.from(computed);
@@ -146,10 +150,10 @@ const verifyPayment = async (req, res) => {
       });
     }
 
-    // Validating against Chapa
+    const chapaKey = process.env.CHAPA_TEST_SECRET_KEY || process.env.CHAPA_SECRET_KEY;
     const response = await axios.get(`https://api.chapa.co/v1/transaction/verify/${tx_ref}`, {
       headers: {
-        Authorization: `Bearer ${process.env.CHAPA_SECRET_KEY}`,
+        Authorization: `Bearer ${chapaKey}`,
       },
     });
 
