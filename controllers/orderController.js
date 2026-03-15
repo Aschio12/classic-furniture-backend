@@ -52,6 +52,9 @@ const checkout = async (req, res) => {
       status: 'Pending',
     });
 
+    cart.items = [];
+    await cart.save();
+
     return res.status(201).json({ order, transaction });
   } catch (err) {
     return res.status(500).json({ message: 'Checkout failed', error: err.message });
