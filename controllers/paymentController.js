@@ -21,7 +21,10 @@ const initializePayment = async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: 'Buyer email not found' });
     }
-    const first_name = order.buyer?.name || 'Buyer';
+    const fullName = order.buyer?.name || 'Buyer';
+    const nameParts = fullName.trim().split(/\s+/);
+    const first_name = nameParts[0] || 'Buyer';
+    const last_name = nameParts.length > 1 ? nameParts.slice(1).join(' ') : first_name;
 
     const tx_ref = `order_${orderId}_${Date.now()}`;
 
@@ -33,9 +36,14 @@ const initializePayment = async (req, res) => {
       currency: 'ETB',
       email,
       first_name,
+      last_name,
       tx_ref,
       callback_url: `${backendUrl}/api/payments/webhook`,
       return_url: `${frontendUrl}/payment-success?tx_ref=${tx_ref}`,
+      customization: {
+        title: 'Classic Furniture',
+        description: `Payment for Order #${String(orderId).slice(-8).toUpperCase()}`,
+      },
     };
 
     const response = await axios.post('https://api.chapa.co/v1/transaction/initialize', payload, {
