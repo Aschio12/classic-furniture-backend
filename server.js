@@ -19,21 +19,17 @@ const app = express();
 
 connectDB();
 
-// Configure CORS with a small allowlist and support for preflight requests.
-const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGINS || "http://localhost:3000, http://localhost:3001, http://localhost:3002, http://localhost:3003, http://localhost:3004, https://your-production-url.vercel.app").split(',').map(s => s.trim());
+const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGINS || "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004").split(',').map(s => s.trim());
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin like mobile apps or curl
     if (!origin) return callback(null, true);
-    if (FRONTEND_ORIGINS.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    if (FRONTEND_ORIGINS.indexOf(origin) !== -1) return callback(null, true);
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 

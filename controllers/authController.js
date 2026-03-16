@@ -53,8 +53,9 @@ const registerUser = async (req, res) => {
       role: 'user',
     });
 
+    const token = generateToken(user._id.toString());
     const { password: _, ...safe } = user.toObject();
-    return res.status(201).json({ user: safe });
+    return res.status(201).json({ token, user: safe, role: safe.role });
   } catch (err) {
     return res.status(500).json({ message: 'Registration failed', error: err.message });
   }
