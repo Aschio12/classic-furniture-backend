@@ -102,4 +102,41 @@ const verifySeller = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, getUserById, requestSellerAccount, verifySeller };
+// PATCH /api/users/profile (any authenticated user)
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { name, email, password } = req.body;
+
+    if (name !== undefined) {
+      user.name = name;
+    }
+
+    if (email !== undefined && email !== user.email) {
+      const existing = await User.findOne({ email: email.toLowerCase() });
+      if (existing) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+      user.email = email;
+    }
+
+    if (password !== undefined && password !== '') {
+      user.password = password;
+    }
+
+    await user.save();
+
+    const updated = user.toObject();
+    delete updated.password;
+
+    return res.json({ user: updated });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to update profile', error: err.message });
+  }
+};
+
+module.exports = { getUsers, getUserById, requestSellerAccount, verifySeller, updateProfile };

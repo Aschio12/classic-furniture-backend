@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUsers, getUserById, requestSellerAccount, verifySeller } = require('../controllers/userController');
+const { getUsers, getUserById, requestSellerAccount, verifySeller, updateProfile } = require('../controllers/userController');
 const { protect, admin, userOnly } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
@@ -20,6 +20,36 @@ const router = express.Router();
  *         description: Admin access required
  */
 router.get('/', protect, admin, getUsers);
+
+/**
+ * @swagger
+ * /api/users/profile:
+ *   patch:
+ *     summary: Update current user's profile
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Updated user profile
+ *       400:
+ *         description: Email already in use
+ *       404:
+ *         description: User not found
+ */
+router.patch('/profile', protect, updateProfile);
 
 /**
  * @swagger
