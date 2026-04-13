@@ -31,12 +31,18 @@ const initializePayment = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3003';
     const backendUrl = process.env.BACKEND_URL || 'https://classic-furniture-backend.onrender.com';
 
+    const amount = parseFloat(order.totalAmount);
+    if (!amount || amount < 1) {
+      return res.status(400).json({ message: `Invalid order amount: ${order.totalAmount}` });
+    }
+
     const payload = {
-      amount: order.totalAmount,
+      amount: String(amount),
       currency: 'ETB',
       email,
       first_name,
       last_name,
+      phone_number: '0900000000',
       tx_ref,
       callback_url: `${backendUrl}/api/payments/webhook`,
       return_url: `${frontendUrl}/payment-success?tx_ref=${tx_ref}`,
@@ -46,16 +52,32 @@ const initializePayment = async (req, res) => {
       },
     };
 
-    const response = await axios.post('https://api.chapa.co/v1/transaction/initialize', payload, {
-      headers: {
-        Authorization: `Bearer ${process.env.CHAPA_TEST_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const chapaKey = process.env.CHAPA_TEST_SECRET_KEY || process.env.CHAPA_SECRET_KEY;
+    if (!chapaKey) {
+      return res.status(500).json({ message: 'Chapa API key not configured on server' });
+    }
+
+    let response;
+    try {
+      response = await axios.post('https://api.chapa.co/v1/transaction/initialize', payload, {
+        headers: {
+          Authorization: `Bearer ${chapaKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (chapaErr) {
+      const chapaData = chapaErr.response?.data;
+      console.error('Chapa init error:', JSON.stringify(chapaData || chapaErr.message));
+      return res.status(502).json({
+        message: chapaData?.message || 'Chapa rejected the payment request',
+        chapaError: chapaData || chapaErr.message,
+      });
+    }
 
     const checkoutUrl = response?.data?.data?.checkout_url;
     if (!checkoutUrl) {
-      return res.status(502).json({ message: 'Invalid response from Chapa' });
+      console.error('Chapa no checkout_url:', JSON.stringify(response?.data));
+      return res.status(502).json({ message: 'Invalid response from Chapa', chapaResponse: response?.data });
     }
 
     await Transaction.findOneAndUpdate(
@@ -66,6 +88,7 @@ const initializePayment = async (req, res) => {
 
     return res.json({ checkout_url: checkoutUrl, tx_ref });
   } catch (err) {
+    console.error('Payment init error:', err.message);
     return res.status(500).json({ message: 'Failed to initialize payment', error: err.message });
   }
 };
